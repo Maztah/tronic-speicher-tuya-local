@@ -88,7 +88,7 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 ### Steuerung
 | Entität | DP | Beschreibung |
 |---|---|---|
-| `select.betriebsmodus` | 105 | Laden+Entladen / Laden zuerst / Entladen zuerst |
+| `select.betriebsmodus` | 105 | Laden+Entladen / Laden zuerst |
 | `select.temperatureinheit` | 24 | Celsius / Fahrenheit |
 | `number.wr_ausgangsleistung` | 115 | WR-Maximalleistung in W (0–800, entspricht „Inverter Configuration → Power") |
 | `number.entladeleistung_slot_1` | 106 | Entladeleistung Slot 1 in W (0 oder 80–800, Schritt 10) |
@@ -139,7 +139,7 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 | 115 | `invt_power` | integer | W | ×1 | ✅ |
 
 **DP 24 Werte:** `c` (Celsius) / `f` (Fahrenheit)  
-**DP 105 Werte:** `charge_discharge` / `charge_first` / `discharge_first`  
+**DP 105 Werte:** `charge_discharge` / `charge_first`  
 **DP 109 Werte:** `charge` / `discharge` / `standby`
 
 ### base64 DPs (nur asynchron gepusht, nicht im initialen Status-Response)

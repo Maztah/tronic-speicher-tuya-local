@@ -283,8 +283,6 @@ entities:
             value: Laden und Entladen
           - dps_val: charge_first
             value: Laden zuerst
-          - dps_val: discharge_first
-            value: Entladen zuerst
 
   # ─── DP 24: Temperatureinheit ───────────────────────────────────────────────
   - entity: select
