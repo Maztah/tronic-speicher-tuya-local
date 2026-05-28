@@ -1,0 +1,42 @@
+# Home Assistant Template-Sensoren
+# Lidl Tronic Solarstromspeicher / Marstek Saturn B2500
+#
+# Füge diesen Block in deine configuration.yaml ein:
+#   template:
+#     - sensor:
+#         - name: "Batterieleistung"
+#           ...
+#
+# Oder binde die Datei ein:
+#   template: !include ha_templates.yaml
+#
+# Voraussetzung: tuya-local YAML (lidl_tronic_speicher_tuyalocal.yaml) ist installiert.
+
+- sensor:
+    # ─── Batterieleistung (vorzeichenbehaftet) ──────────────────────────────────
+    #
+    # Kombiniert Ladeleistung und Lade-/Entladestatus zu einem vorzeichenbehafteten
+    # Leistungssensor, wie ihn das HA Energie-Dashboard erwartet:
+    #
+    #   Entladen (Einspeisung ins Haus): positiver Wert  → z.B. +320 W
+    #   Laden    (Bezug aus PV/Netz):    negativer Wert  → z.B. -180 W
+    #   Standby:                         0 W
+    #
+    # Verwendung im Energie-Dashboard:
+    #   Einstellungen → Energie → Heimspeicher → Batterieleistung → dieser Sensor
+    #
+    - name: "Batterieleistung"
+      unique_id: lidl_tronic_batterieleistung
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      state: >
+        {% set leistung = states('sensor.lidl_tronic_solarstromspeicher_ladeleistung') | float(0) %}
+        {% set status = states('sensor.lidl_tronic_solarstromspeicher_lade_entladestatus') %}
+        {% if status == 'discharge' %}
+          {{ leistung }}
+        {% elif status == 'charge' %}
+          {{ leistung * -1 }}
+        {% else %}
+          0
+        {% endif %}

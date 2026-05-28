@@ -17,6 +17,7 @@
 - [DP-Referenz](#dp-referenz)
 - [base64-DP-Strukturen](#base64-dp-strukturen)
 - [Bekannte Einschränkungen](#bekannte-einschränkungen)
+- [Template-Sensoren](#template-sensoren)
 - [Credits](#credits)
 
 ---
@@ -248,6 +249,43 @@ Bekannte Modellcodes:
 - **DP 33 (DC-Ausgang):** Werte kommen nur als asynchrone Pushes, nicht auf Anfrage.
 - **DP 108 (Abschaltschwelle):** Tuya-intern als `batt_on_threshold` dokumentiert, Funktion im Betrieb noch nicht vollständig bestätigt.
 - **Temperatur-Skala:** DP 10 liefert den Rohwert direkt in °C (kein Teiler). Tuya-Cloud-Spec bestätigt `scale:0`.
+
+---
+
+## Template-Sensoren
+
+Die Datei [`ha_templates.yaml`](ha_templates.yaml) enthält zusätzliche Template-Sensoren für das **HA Energie-Dashboard**.
+
+### Batterieleistung (vorzeichenbehaftet)
+
+Das HA Energie-Dashboard erwartet unter „Heimspeicher → Batterieleistung" einen **vorzeichenbehafteten** Sensor:
+- **Positiver Wert** = Entladen (Batterie liefert Energie ans Haus)
+- **Negativer Wert** = Laden (Batterie nimmt Energie auf)
+
+tuya-local liefert `sensor.ladeleistung` immer als positiven Absolutwert. Dieser Template-Sensor kombiniert ihn mit `sensor.lade_entladestatus` zum korrekten Vorzeichen:
+
+```yaml
+template:
+  - sensor:
+      - name: "Batterieleistung"
+        unique_id: lidl_tronic_batterieleistung
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set leistung = states('sensor.lidl_tronic_solarstromspeicher_ladeleistung') | float(0) %}
+          {% set status = states('sensor.lidl_tronic_solarstromspeicher_lade_entladestatus') %}
+          {% if status == 'discharge' %}
+            {{ leistung }}
+          {% elif status == 'charge' %}
+            {{ leistung * -1 }}
+          {% else %}
+            0
+          {% endif %}
+```
+
+**Installation:** Inhalt aus `ha_templates.yaml` in die `configuration.yaml` kopieren, anschließend HA neu starten.  
+Im Energie-Dashboard: **Einstellungen → Energie → Heimspeicher → Batterieleistung** → `sensor.batterieleistung` auswählen.
 
 ---
 
