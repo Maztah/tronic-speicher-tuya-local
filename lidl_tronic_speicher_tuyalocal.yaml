@@ -404,6 +404,7 @@ entities:
       - id: 108
         type: integer
         name: value
+        optional: true
         unit: W
         range:
           min: 0
