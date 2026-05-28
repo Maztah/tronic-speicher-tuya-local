@@ -301,8 +301,12 @@ entities:
             value: Fahrenheit
 
   # ─── DP 115: WR Ausgangsleistung Setpoint (W, schreibbar) ───────────────────
-  # Setzt die gewünschte Einspeiseleistung des Wechselrichters
-  # Hofyyy: max 600W (HM-600) – je nach WR-Modell bis 2250W möglich
+  # Entspricht "Inverter Configuration → Power" in der App.
+  # Setzt die maximale Ausgangsleistung des WR-Modells.
+  # Gerät begrenzt automatisch auf das Maximum des angeschlossenen WR (aus DP 114).
+  # Bekannte Maximalwerte: HM-600=600W, HM-700=700W, HM-800=800W,
+  #                        HM-1500=1500W, HM-2250=2250W, Deye SUN600G3=600W
+  # ACHTUNG: Kopplung mit DP 106 Slot 1 – Reduzieren cappt auch die Slot-Leistung
   - entity: number
     name: WR Ausgangsleistung
     category: config
@@ -311,13 +315,12 @@ entities:
         type: integer
         name: value
         unit: W
-        range:
-          min: 0
-          max: 600
 
   # ─── DP 106: Entladeplan Slot 1 – Leistung (bytes 6-7, W) ──────────────────
   # tuya-local: liest Blob → ändert nur bytes 6-7 → schreibt zurück
   # Alle anderen Bytes (Zeitfenster Slots 1-5) bleiben unverändert
+  # Gültige Werte: 0 (Einspeisung stopp) oder 80–700W (Mindestleistung 80W)
+  # Werte 1–79W werden vom Gerät still ignoriert
   - entity: number
     name: Entladeleistung Slot 1
     category: config
