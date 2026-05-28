@@ -292,6 +292,7 @@ entities:
       - id: 24
         type: string
         name: option
+        optional: true
         mapping:
           - dps_val: c
             value: Celsius
