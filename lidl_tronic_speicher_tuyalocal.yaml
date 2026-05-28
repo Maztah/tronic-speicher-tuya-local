@@ -1,0 +1,467 @@
+# Lidl Tronic Solarstromspeicher (baugleich Marstek Saturn B2500, Tuya-Kategorie bxsdy)
+# tuya-local custom device configuration – Schema-kompatibles Format (make-all/tuya-local)
+# Protokoll: Tuya 3.3
+# Ablegen unter: /config/custom_components/tuya_local/devices/
+#
+# Quellen: Hofyyy/lidl-tronic-solarspeicher + eigene Messungen
+#
+# DP-3 Struktur (6 Bytes, 3× uint16 big-endian):
+#   bytes 0-1: Akkuspannung  ÷10 → V    mask: FFFF00000000
+#   bytes 2-3: Lade-/Entladestrom ÷10 → A  mask: 0000FFFF0000
+#   bytes 4-5: Lade-/Entladeleistung ×1 → W  mask: 00000000FFFF
+#
+# DP-33 Struktur (13 Bytes, DC-Ausgänge OUT1/OUT2):
+#   byte   0: flag (0=normal, 3=Entladefenster aktiv)
+#   bytes  1-2: OUT1 Spannung ÷10 → V
+#   bytes  3-4: OUT1 Strom ÷100 → A
+#   bytes  5-6: OUT1 Leistung ×1 → W
+#   bytes  7-8: OUT2 Spannung ÷10 → V
+#   bytes  9-10: OUT2 Strom ÷10 → A
+#   bytes 11-12: OUT2 Leistung ×1 → W
+#
+# DP-101 Struktur (13 Bytes, PV-Parameter – DP-ID noch unbestätigt, nur tagsüber):
+#   byte   0: flag/version
+#   bytes  1-2: PV1 Spannung ÷10 → V
+#   bytes  3-4: PV1 Strom ÷10 → A
+#   bytes  5-6: PV1 Leistung ×1 → W
+#   bytes  7-8: PV2 Spannung ÷10 → V
+#   bytes  9-10: PV2 Strom ÷100 → A
+#   bytes 11-12: PV2 Leistung ×1 → W
+#
+# DP-106 Struktur (36 Bytes = 1B Header + 5× 7B Zeitfenster-Slots):
+#   byte   0: header (immer 0)
+#   pro Slot (offset = 1 + slot*7):
+#     byte +0: aktiv (1=ja, 0=nein)
+#     byte +1: Startstunde, +2: Startminute
+#     byte +3: Endstunde,   +4: Endminute
+#     bytes +5-6: Leistung uint16 BE (W)
+#   Dieser Number-Entity steuert NUR Slot-1-Leistung (bytes 6-7)
+#
+# DP-114 Struktur (8 Bytes = 4× uint16 BE):
+#   bytes 0-1: WR-Modellcode (Hoymiles 1000er, Deye 2000er)
+#   bytes 2-3: 360 (konstant)
+#   bytes 4-5: 30 (Min.-Leistung, konstant)
+#   bytes 6-7: Max. WR-Leistung (W)
+#
+# Energie-DPs (37/102/103/104): Rohwert ÷100 = kWh (d.h. scale: 100)
+# Masken-Regel: je 2 Hex-Zeichen pro Byte, FF = dieses Byte lesen/schreiben
+
+name: Lidl Tronic Solarstromspeicher
+
+products:
+  - id: fpi7g58s9hoxlvng
+    name: Lidl Tronic Solarstromspeicher
+
+entities:
+
+  # ─── DP 1: Batteriestand % ──────────────────────────────────────────────────
+  - entity: sensor
+    name: Batteriestand
+    class: battery
+    dps:
+      - id: 1
+        type: integer
+        name: sensor
+        class: measurement
+        unit: "%"
+
+  # ─── DP 2: Restlaufzeit (min) ───────────────────────────────────────────────
+  - entity: sensor
+    name: Restlaufzeit
+    class: duration
+    dps:
+      - id: 2
+        type: integer
+        name: sensor
+        class: measurement
+        unit: min
+
+  # ─── DP 3: Akkuspannung (bytes 0-1, uint16 BE, ÷10 = V) ────────────────────
+  - entity: sensor
+    name: Akkuspannung
+    class: voltage
+    dps:
+      - id: 3
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "FFFF00000000"
+        unit: V
+        mapping:
+          - scale: 10
+
+  # ─── DP 3: Ladestrom (bytes 2-3, uint16 BE, ÷10 = A) ───────────────────────
+  # Positiv = Laden, negativ = Entladen (je nach Geräteverhalten)
+  - entity: sensor
+    name: Ladestrom
+    class: current
+    dps:
+      - id: 3
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "0000FFFF0000"
+        unit: A
+        mapping:
+          - scale: 10
+
+  # ─── DP 3: Ladeleistung (bytes 4-5, uint16 BE, ×1 = W) ─────────────────────
+  - entity: sensor
+    name: Ladeleistung
+    class: power
+    dps:
+      - id: 3
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "00000000FFFF"
+        unit: W
+
+  # ─── DP 4: Fehlercode ───────────────────────────────────────────────────────
+  - entity: sensor
+    name: Fehlercode
+    category: diagnostic
+    dps:
+      - id: 4
+        type: integer
+        name: sensor
+
+  # ─── DP 10: Temperatur ──────────────────────────────────────────────────────
+  - entity: sensor
+    name: Temperatur
+    class: temperature
+    dps:
+      - id: 10
+        type: integer
+        name: sensor
+        class: measurement
+        unit: C
+        mapping:
+          - scale: 10
+
+  # ─── DP 33: DC-Ausgang OUT1 – Leistung (bytes 5-6, uint16 BE, W) ────────────
+  - entity: sensor
+    name: DC OUT1 Leistung
+    class: power
+    dps:
+      - id: 33
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "0000000000FFFF000000000000"
+        unit: W
+
+  # ─── DP 33: DC-Ausgang OUT2 – Leistung (bytes 11-12, uint16 BE, W) ──────────
+  - entity: sensor
+    name: DC OUT2 Leistung
+    class: power
+    dps:
+      - id: 33
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "0000000000000000000000FFFF"
+        unit: W
+
+  # ─── DP 33: DC-Ausgang OUT1 – Spannung (bytes 1-2, ÷10, V) – Diagnose ──────
+  - entity: sensor
+    name: DC OUT1 Spannung
+    class: voltage
+    category: diagnostic
+    dps:
+      - id: 33
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "00FFFF00000000000000000000"
+        unit: V
+        mapping:
+          - scale: 10
+
+  # ─── DP 33: DC-Ausgang OUT1 – Strom (bytes 3-4, ÷100, A) – Diagnose ────────
+  - entity: sensor
+    name: DC OUT1 Strom
+    class: current
+    category: diagnostic
+    dps:
+      - id: 33
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "000000FFFF0000000000000000"
+        unit: A
+        mapping:
+          - scale: 100
+
+  # ─── DP 33: DC-Ausgang OUT2 – Spannung (bytes 7-8, ÷10, V) – Diagnose ──────
+  - entity: sensor
+    name: DC OUT2 Spannung
+    class: voltage
+    category: diagnostic
+    dps:
+      - id: 33
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "00000000000000FFFF00000000"
+        unit: V
+        mapping:
+          - scale: 10
+
+  # ─── DP 33: DC-Ausgang OUT2 – Strom (bytes 9-10, ÷10, A) – Diagnose ────────
+  - entity: sensor
+    name: DC OUT2 Strom
+    class: current
+    category: diagnostic
+    dps:
+      - id: 33
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        mask: "000000000000000000FFFF0000"
+        unit: A
+        mapping:
+          - scale: 10
+
+  # ─── DP 33: Raw Diagnose ────────────────────────────────────────────────────
+  - entity: sensor
+    name: DC Message Raw
+    category: diagnostic
+    dps:
+      - id: 33
+        type: base64
+        name: sensor
+        optional: true
+        force: true
+        readonly: true
+
+  # ─── DP 37: PV-Ertrag gesamt (÷100 = kWh) ──────────────────────────────────
+  - entity: sensor
+    name: PV-Ertrag gesamt
+    class: energy
+    dps:
+      - id: 37
+        type: integer
+        name: sensor
+        class: total_increasing
+        unit: kWh
+        mapping:
+          - scale: 100
+
+  # ─── DP 101: PV1 Leistung (bytes 5-6, W) – DP-ID noch unbestätigt ──────────
+  # Nur tagsüber mit aktiver PV vorhanden. Optional markiert.
+  - entity: sensor
+    name: PV1 Leistung
+    class: power
+    dps:
+      - id: 101
+        type: base64
+        name: sensor
+        class: measurement
+        force: true
+        optional: true
+        mask: "0000000000FFFF000000000000"
+        unit: W
+
+  # ─── DP 101: PV1 Spannung (bytes 1-2, ÷10, V) – DP-ID noch unbestätigt ─────
+  - entity: sensor
+    name: PV1 Spannung
+    class: voltage
+    category: diagnostic
+    dps:
+      - id: 101
+        type: base64
+        name: sensor
+        class: measurement
+        force: true
+        optional: true
+        mask: "00FFFF00000000000000000000"
+        unit: V
+        mapping:
+          - scale: 10
+
+  # ─── DP 101: PV2 Leistung (bytes 11-12, W) – DP-ID noch unbestätigt ────────
+  - entity: sensor
+    name: PV2 Leistung
+    class: power
+    category: diagnostic
+    dps:
+      - id: 101
+        type: base64
+        name: sensor
+        class: measurement
+        force: true
+        optional: true
+        mask: "0000000000000000000000FFFF"
+        unit: W
+
+  # ─── DP 102/103/104: Energie-Zähler gesamt (÷100 = kWh) ────────────────────
+  - entity: sensor
+    name: Batterie geladen gesamt
+    class: energy
+    dps:
+      - id: 102
+        type: integer
+        name: sensor
+        class: total_increasing
+        unit: kWh
+        mapping:
+          - scale: 100
+
+  - entity: sensor
+    name: Batterie entladen gesamt
+    class: energy
+    dps:
+      - id: 103
+        type: integer
+        name: sensor
+        class: total_increasing
+        unit: kWh
+        mapping:
+          - scale: 100
+
+  - entity: sensor
+    name: Verbrauch gesamt
+    class: energy
+    dps:
+      - id: 104
+        type: integer
+        name: sensor
+        class: total_increasing
+        unit: kWh
+        mapping:
+          - scale: 100
+
+  # ─── DP 105: Betriebsmodus ──────────────────────────────────────────────────
+  - entity: select
+    name: Betriebsmodus
+    category: config
+    dps:
+      - id: 105
+        type: string
+        name: option
+        mapping:
+          - dps_val: charge_discharge
+            value: Laden und Entladen
+          - dps_val: charge_first
+            value: Laden zuerst
+          - dps_val: discharge_first
+            value: Entladen zuerst
+
+  # ─── DP 106: Entladeplan Slot 1 – Leistung (bytes 6-7, W) ──────────────────
+  # tuya-local: liest Blob → ändert nur bytes 6-7 → schreibt zurück
+  # Alle anderen Bytes (Zeitfenster Slots 1-5) bleiben unverändert
+  - entity: number
+    name: Entladeleistung Slot 1
+    dps:
+      - id: 106
+        type: base64
+        name: value
+        optional: true
+        force: true
+        mask: "000000000000FFFF00000000000000000000000000000000000000000000000000000000"
+        unit: W
+        range:
+          min: 0
+          max: 700
+        mapping:
+          - step: 10
+
+  # ─── DP 107: Entladetiefe (DoD) % ──────────────────────────────────────────
+  - entity: number
+    name: Entladetiefe
+    category: config
+    dps:
+      - id: 107
+        type: integer
+        name: value
+        unit: "%"
+        range:
+          min: 1
+          max: 100
+
+  # ─── DP 108: Abschaltschwelle (min. Ausgangsleistung) W ─────────────────────
+  - entity: number
+    name: Abschaltschwelle
+    category: config
+    dps:
+      - id: 108
+        type: integer
+        name: value
+        unit: W
+        range:
+          min: 0
+          max: 700
+
+  # ─── DP 109: Lade-/Entladestatus ────────────────────────────────────────────
+  # Werte: charge / discharge / standby
+  - entity: sensor
+    name: Lade-/Entladestatus
+    dps:
+      - id: 109
+        type: string
+        name: sensor
+        readonly: true
+
+  # ─── DP 111: Daten aktualisieren (force_refresh) ────────────────────────────
+  # Button sendet true → Gerät pushed sofort alle aktuellen DPs
+  - entity: button
+    name: Daten aktualisieren
+    dps:
+      - id: 111
+        type: boolean
+        name: button
+
+  # ─── DP 113: Anzahl Akkupacks ───────────────────────────────────────────────
+  - entity: sensor
+    name: Anzahl Akkupacks
+    dps:
+      - id: 113
+        type: integer
+        name: sensor
+
+  # ─── DP 114: WR-Konfiguration Raw ───────────────────────────────────────────
+  # 8 Bytes (4× uint16 BE): Modellcode / 360 / 30 / Max.leistung W
+  - entity: sensor
+    name: WR Konfiguration Raw
+    category: diagnostic
+    dps:
+      - id: 114
+        type: base64
+        name: sensor
+        optional: true
+        force: true
+        readonly: true
+
+  # ─── DP 115: WR Ausgangsleistung Setpoint (W, schreibbar) ───────────────────
+  # Setzt die gewünschte Einspeiseleistung des Wechselrichters
+  # Hofyyy: max 600W (HM-600) – je nach WR-Modell bis 2250W möglich
+  - entity: number
+    name: WR Ausgangsleistung
+    category: config
+    dps:
+      - id: 115
+        type: integer
+        name: value
+        unit: W
+        range:
+          min: 0
+          max: 600
