@@ -142,8 +142,6 @@ entities:
         name: sensor
         class: measurement
         unit: C
-        mapping:
-          - scale: 10
 
   # ─── DP 33: DC-Ausgang OUT1 – Leistung (bytes 5-6, uint16 BE, W) ────────────
   - entity: sensor

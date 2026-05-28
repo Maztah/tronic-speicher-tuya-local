@@ -62,7 +62,7 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 | `sensor.akkuspannung` | 3 | Akkuspannung in V (÷10) |
 | `sensor.ladestrom` | 3 | Lade-/Entladestrom in A (÷10) |
 | `sensor.ladeleistung` | 3 | Lade-/Entladeleistung in W |
-| `sensor.temperatur` | 10 | Akkutemperatur in °C (÷10) |
+| `sensor.temperatur` | 10 | Akkutemperatur in °C |
 | `sensor.lade_entladestatus` | 109 | `charge` / `discharge` / `standby` |
 
 ### DC-Ausgänge (DP 33, asynchron)
@@ -119,7 +119,7 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 | 1 | `battery_percentage` | integer | % | ×1 | ✅ |
 | 2 | `remain_time` | integer | min | ×1 | ✅ |
 | 4 | `fault` | integer | – | ×1 | ✅ |
-| 10 | `temp_current` | integer | °C | ÷10 | ✅ |
+| 10 | `temp_current` | integer | °C | ×1 | ✅ |
 | 37 | `reverse_energy_total` | integer | kWh | ÷100 | ✅ |
 | 102 | `batt_char_total` | integer | kWh | ÷100 | ✅ |
 | 103 | `batt_dischar_total` | integer | kWh | ÷100 | ✅ |
@@ -225,7 +225,7 @@ Bekannte Modellcodes: HM-600→1004, HM-800→1006, HM-1500→1012, HM-2250→10
 - **DP 106 (Entladeplan):** Nur Slot-1-Leistung wird über die YAML gesteuert. Für vollständige Zeitfenster-Konfiguration (Slot 1–5) ist ein Node-RED/AppDaemon-Script notwendig.
 - **DP 101 (PV-Daten):** DP-ID durch Tuya-Cloud bestätigt, aber der DP taucht nur bei aktiver PV-Produktion auf. Nachts bleiben diese Sensoren leer.
 - **DP 33 (DC-Ausgang):** Die Werte kommen nur als asynchrone Pushes, nicht auf Anfrage. Das Gerät sendet sie in unregelmäßigen Abständen.
-- **Temperatur-Skala:** DP 10 liefert Rohwert ÷10 = °C. Bei Rohwert 21 → 2,1°C angezeigte Temperatur. Falls das unrealistisch klingt: bitte im HA-Log den tatsächlichen Rohwert prüfen und ggf. die `scale` anpassen.
+- **Temperatur-Skala:** DP 10 liefert den Rohwert direkt in °C (kein Teiler). Tuya-Cloud-Spec bestätigt `scale:0`.
 
 ---
 
