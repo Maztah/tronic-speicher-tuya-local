@@ -243,7 +243,7 @@ Bekannte Modellcodes:
 ## Bekannte Einschränkungen
 
 - **DP 106 (Entladeplan):** Nur Slot-1-Leistung wird über die YAML gesteuert. Für vollständige Zeitfenster-Konfiguration (Slot 1–5) ist ein Node-RED/AppDaemon-Script notwendig. Mindestleistung beim Entladen: 80W (Werte 1–79W werden ignoriert, 0W stoppt die Einspeisung).
-- **DP 115 (WR Ausgangsleistung):** Entspricht „Inverter Configuration → Power" in der App. Setzt die WR-Maximalleistung – **nicht** den laufenden Sollwert. Bei Reduzierung wird auch Slot-1-Leistung (DP 106) mitgecappt.
+- **DP 115 (WR Ausgangsleistung):** Entspricht „Inverter Configuration → Power" in der App. Verhält sich als reine **Obergrenze**: Senken cappt DP 106 Slot 1 mit; Senken auf ≤200W cappt zusätzlich die Abschaltschwelle (DP 108). Erhöhen hat keinen Effekt auf Slot 1 oder DP 108. **Nicht geeignet für Nulleinspeisung** – dafür DP 106 Slot 1 verwenden. Gerät akzeptiert maximal das WR-Modell-Maximum (aus DP 114).
 - **DP 101 (PV-Daten):** Taucht nur bei aktiver PV-Produktion auf. Nachts bleiben diese Sensoren leer.
 - **DP 33 (DC-Ausgang):** Werte kommen nur als asynchrone Pushes, nicht auf Anfrage.
 - **DP 108 (Abschaltschwelle):** Tuya-intern als `batt_on_threshold` dokumentiert, Funktion im Betrieb noch nicht vollständig bestätigt.

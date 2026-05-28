@@ -298,13 +298,15 @@ entities:
           - dps_val: f
             value: Fahrenheit
 
-  # ─── DP 115: WR Ausgangsleistung Setpoint (W, schreibbar) ───────────────────
+  # ─── DP 115: WR Ausgangsleistung (W, schreibbar) ────────────────────────────
   # Entspricht "Inverter Configuration → Power" in der App.
-  # Setzt die maximale Ausgangsleistung des WR-Modells.
-  # Gerät begrenzt automatisch auf das Maximum des angeschlossenen WR (aus DP 114).
-  # Bekannte Maximalwerte: HM-600=600W, HM-700=700W, HM-800=800W,
-  #                        HM-1500=1500W, HM-2250=2250W, Deye SUN600G3=600W
-  # ACHTUNG: Kopplung mit DP 106 Slot 1 – Reduzieren cappt auch die Slot-Leistung
+  # Verhält sich als reine Obergrenze (Ceiling):
+  #   - Senken unter Slot-1-Leistung → cappt DP 106 Slot 1 mit
+  #   - Senken auf ≤200W             → cappt zusätzlich Abschaltschwelle (DP 108)
+  #   - Erhöhen                      → ändert Slot 1 und DP 108 NICHT
+  # → NICHT geeignet für Nulleinspeisung (kein Rückweg nach oben)
+  # → Für Nulleinspeisung: DP 106 Slot 1 verwenden
+  # Gerät akzeptiert max. das WR-Modell-Maximum aus DP 114 bytes 6-7
   - entity: number
     name: WR Ausgangsleistung
     category: config
