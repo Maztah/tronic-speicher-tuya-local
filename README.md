@@ -90,8 +90,8 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 |---|---|---|
 | `select.betriebsmodus` | 105 | Laden+Entladen / Laden zuerst / Entladen zuerst |
 | `select.temperatureinheit` | 24 | Celsius / Fahrenheit |
-| `number.wr_ausgangsleistung` | 115 | WR-Maximalleistung (entspricht „Inverter Configuration → Power" in der App) |
-| `number.entladeleistung_slot_1` | 106 | Entladeleistung Slot 1 in W (0 oder 80–700, Schritt 10) |
+| `number.wr_ausgangsleistung` | 115 | WR-Maximalleistung in W (0–800, entspricht „Inverter Configuration → Power") |
+| `number.entladeleistung_slot_1` | 106 | Entladeleistung Slot 1 in W (0 oder 80–800, Schritt 10) |
 | `number.entladetiefe` | 107 | Entladetiefe (DoD) in % (1–100) |
 | `number.abschaltschwelle` | 108 | Mindest-Ausgangsleistung (Abschaltschwelle) W |
 | `button.daten_aktualisieren` | 111 | Erzwingt sofortigen DP-Push vom Gerät |
@@ -110,6 +110,7 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 | `sensor.pv2_spannung` | 101 | PV-Eingang 2 Spannung V (÷10) |
 | `sensor.pv2_strom` | 101 | PV-Eingang 2 Strom A (÷100) |
 | `sensor.dc_message_raw` | 33 | DC-Nachricht als base64 |
+| `sensor.wr_max_leistung` | 114 | Maximale WR-Leistung in W (aus Inverter-Konfiguration) |
 | `sensor.wr_konfiguration_raw` | 114 | WR-Konfiguration als base64 |
 
 ---
@@ -234,6 +235,8 @@ Bekannte Modellcodes:
 | 1019 | Hoymiles HM-2250 | 2250 W |
 | 1028 | Hoymiles HMT-2250-6T | 2250 W |
 | 2001 | Deye SUN600G3 | 600 W |
+
+> **Tipp:** Bytes 6–7 werden als `sensor.wr_max_leistung` extrahiert und können in HA-Template-Entities als dynamisches Maximum für `number.wr_ausgangsleistung` und `number.entladeleistung_slot_1` genutzt werden.
 
 ---
 

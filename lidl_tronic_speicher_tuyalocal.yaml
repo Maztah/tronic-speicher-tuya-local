@@ -315,6 +315,9 @@ entities:
         type: integer
         name: value
         unit: W
+        range:
+          min: 0
+          max: 800
 
   # ─── DP 106: Entladeplan Slot 1 – Leistung (bytes 6-7, W) ──────────────────
   # tuya-local: liest Blob → ändert nur bytes 6-7 → schreibt zurück
@@ -334,7 +337,7 @@ entities:
         unit: W
         range:
           min: 0
-          max: 700
+          max: 800
         mapping:
           - step: 10
 
@@ -543,6 +546,24 @@ entities:
         optional: true
         force: true
         readonly: true
+
+  # ─── DP 114: WR Max Leistung (bytes 6-7, uint16 BE, W) ─────────────────────
+  # Maximale Ausgangsleistung des konfigurierten WR-Modells
+  # Wird als dynamisches Maximum für WR Ausgangsleistung und Entladeleistung genutzt
+  - entity: sensor
+    name: WR Max Leistung
+    class: power
+    category: diagnostic
+    dps:
+      - id: 114
+        type: base64
+        name: sensor
+        class: measurement
+        optional: true
+        force: true
+        readonly: true
+        mask: "000000000000FFFF"
+        unit: W
 
   # ─── DP 114: WR-Konfiguration Raw ───────────────────────────────────────────
   # 8 Bytes (4× uint16 BE): Modellcode / 360 / 30 / Max.leistung W
