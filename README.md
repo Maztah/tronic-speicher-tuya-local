@@ -18,6 +18,7 @@
 - [base64-DP-Strukturen](#base64-dp-strukturen)
 - [Bekannte Einschränkungen](#bekannte-einschränkungen)
 - [Template-Sensoren](#template-sensoren)
+- [Automationen](#automationen)
 - [Credits](#credits)
 
 ---
@@ -96,6 +97,7 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 | `number.entladetiefe` | 107 | Entladetiefe (DoD) in % (1–100) |
 | `number.abschaltschwelle` | 108 | Mindest-Ausgangsleistung (Abschaltschwelle) W |
 | `button.daten_aktualisieren` | 111 | Erzwingt sofortigen DP-Push vom Gerät |
+| `button.entladeleistung_reset` | 106 | Schreibt Standard-Blob auf DP 106 (Initialisierung nach Neustart) |
 
 ### Diagnose
 | Entität | DP | Beschreibung |
@@ -254,38 +256,60 @@ Bekannte Modellcodes:
 
 ## Template-Sensoren
 
-Die Datei [`ha_templates.yaml`](ha_templates.yaml) enthält zusätzliche Template-Sensoren für das **HA Energie-Dashboard**.
+Die Datei [`ha_templates.yaml`](ha_templates.yaml) enthält zwei Template-Sensoren für das **HA Energie-Dashboard**.
 
-### Batterieleistung (vorzeichenbehaftet)
-
-Das HA Energie-Dashboard erwartet unter „Heimspeicher → Batterieleistung" einen **vorzeichenbehafteten** Sensor:
-- **Positiver Wert** = Entladen (Batterie liefert Energie ans Haus)
-- **Negativer Wert** = Laden (Batterie nimmt Energie auf)
-
-tuya-local liefert `sensor.ladeleistung` immer als positiven Absolutwert. Dieser Template-Sensor kombiniert ihn mit `sensor.lade_entladestatus` zum korrekten Vorzeichen:
-
+**Installation:**
 ```yaml
-template:
-  - sensor:
-      - name: "Batterieleistung"
-        unique_id: lidl_tronic_batterieleistung
-        unit_of_measurement: "W"
-        device_class: power
-        state_class: measurement
-        state: >
-          {% set leistung = states('sensor.lidl_tronic_solarstromspeicher_ladeleistung') | float(0) %}
-          {% set status = states('sensor.lidl_tronic_solarstromspeicher_lade_entladestatus') %}
-          {% if status == 'discharge' %}
-            {{ leistung }}
-          {% elif status == 'charge' %}
-            {{ leistung * -1 }}
-          {% else %}
-            0
-          {% endif %}
+# configuration.yaml
+template: !include ha_templates.yaml
 ```
+Anschließend HA neu starten. Den Gerätenamen ggf. unter `variables: device:` anpassen.
 
-**Installation:** Inhalt aus `ha_templates.yaml` in die `configuration.yaml` kopieren, anschließend HA neu starten.  
-Im Energie-Dashboard: **Einstellungen → Energie → Heimspeicher → Batterieleistung** → `sensor.batterieleistung` auswählen.
+---
+
+### Ladeleistung netto (vorzeichenbehaftet)
+
+tuya-local liefert `sensor.ladeleistung` immer als positiven Absolutwert. Dieser Sensor kombiniert ihn mit `sensor.lade_entladestatus` zum korrekten Vorzeichen für das Energie-Dashboard:
+
+| Status | Wert |
+|---|---|
+| `discharge` | positiv (z. B. +320 W) |
+| `charge` | negativ (z. B. −180 W) |
+| `standby` | 0 W |
+
+**Energie-Dashboard:** Einstellungen → Energie → Heimspeicher → `sensor.ladeleistung_netto`
+
+---
+
+### Solarleistung netto
+
+Summiert PV1 + PV2 aus DP 101. Tagsüber aktiv, nachts `unavailable` (DP 101 wird vom Gerät nur bei aktiver PV-Produktion gepusht).
+
+**Energie-Dashboard:** Einstellungen → Energie → Solaranlage → `sensor.solarleistung_netto`
+
+> Inspiriert von [Hofyyy/lidl-tronic-solarspeicher](https://github.com/Hofyyy/lidl-tronic-solarspeicher)
+
+---
+
+## Automationen
+
+Die Datei [`ha_automations.yaml`](ha_automations.yaml) enthält eine dokumentierte Beispiel-Automation.
+
+### Tronic – Refresh & Monitoring
+
+Löst zwei Probleme gleichzeitig:
+
+**1. Sensor-Refresh (minütlich)**  
+Drückt `button.daten_aktualisieren` (DP 111 force_refresh) – das Gerät pushed daraufhin sofort alle aktuellen DPs. Ohne diesen Trigger bleiben base64-DPs wie DP 3, 33 und 101 nach einer Pause veraltet.
+
+**2. DP 106 Initialisierung nach Neustart / WLAN-Reconnect**  
+DP 106 (Entladeleistung Slot 1) wird vom Gerät **nie** von sich aus gepusht. Nach jedem Verbindungsaufbau steht `sensor.entladeleistung_slot_1` auf `unknown` – tuya-locals Masking schlägt dann fehl:
+```
+Cannot mask unknown current value
+```
+Die Automation erkennt diesen Zustand und drückt nach 5 Sekunden `button.entladeleistung_reset`, der den Standard-Blob (alle 5 Slots, 80 W) direkt auf DP 106 schreibt – ohne Masking.
+
+**Import:** Automation in HA öffnen → Drei-Punkte-Menü → „Als YAML bearbeiten" → Inhalt aus `ha_automations.yaml` einfügen (ohne den Kopfkommentar, `id:` weglassen).
 
 ---
 
@@ -309,6 +333,9 @@ Im Energie-Dashboard: **Einstellungen → Energie → Heimspeicher → Batteriel
   - DP 24 Temperatureinheit-Selector
   - DP 115 als schreibbarer Number-Entity ohne künstliche Begrenzung
   - Button-Entity für DP 111 (force_refresh)
+  - Button-Entity für DP 106 (Initialisierungs-Reset nach Neustart/Reconnect)
+  - Template-Sensoren für das HA Energie-Dashboard (`ha_templates.yaml`)
+  - Beispiel-Automation für Sensor-Refresh und DP 106 Initialisierung (`ha_automations.yaml`)
 
 ---
 
