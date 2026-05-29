@@ -385,19 +385,22 @@ entities:
           min: 1
           max: 100
 
-  # ─── DP 108: Abschaltschwelle (min. Ausgangsleistung) W ─────────────────────
-  - entity: number
+  # ─── DP 108: Abschaltschwelle W ─────────────────────────────────────────────
+  # Intern berechneter Schwellwert: gibt an, ab welcher Eingangsleistung das Gerät
+  # aus dem Standby in den Betrieb wechselt (z. B. wenn PV vorhanden und gleichzeitig
+  # eingespeist wird). Wird vom Gerät selbst gesetzt – als Sensor behandelt.
+  # Theoretisch schreibbar (DP akzeptiert integer), Effekt im Betrieb nicht bestätigt.
+  - entity: sensor
     name: Abschaltschwelle
-    category: config
+    category: diagnostic
     dps:
       - id: 108
         type: integer
-        name: value
+        name: sensor
+        class: measurement
         optional: true
+        readonly: true
         unit: W
-        range:
-          min: 0
-          max: 700
 
   # ─── DP 111: Daten aktualisieren (force_refresh) ────────────────────────────
   # Button sendet true → Gerät pushed sofort alle aktuellen DPs

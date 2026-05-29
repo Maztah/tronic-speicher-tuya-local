@@ -95,7 +95,6 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 | `number.wr_ausgangsleistung` | 115 | WR-Maximalleistung in W (0–800, entspricht „Inverter Configuration → Power") |
 | `number.entladeleistung_slot_1` | 106 | Entladeleistung Slot 1 in W (0 oder 80–800, Schritt 10) |
 | `number.entladetiefe` | 107 | Entladetiefe (DoD) in % (1–100) |
-| `number.abschaltschwelle` | 108 | Mindest-Ausgangsleistung (Abschaltschwelle) W |
 | `button.daten_aktualisieren` | 111 | Erzwingt sofortigen DP-Push vom Gerät |
 | `button.entladeleistung_reset` | 106 | Schreibt Standard-Blob auf DP 106 (Initialisierung nach Neustart) |
 
@@ -113,6 +112,7 @@ Nach der Einrichtung erstellt tuya-local folgende Entitäten:
 | `sensor.pv2_spannung` | 101 | PV-Eingang 2 Spannung V (÷10) |
 | `sensor.pv2_strom` | 101 | PV-Eingang 2 Strom A (÷100) |
 | `sensor.dc_message_raw` | 33 | DC-Nachricht als base64 |
+| `sensor.abschaltschwelle` | 108 | Intern berechneter Standby-Schwellwert in W (readonly) |
 | `sensor.wr_max_leistung` | 114 | Maximale WR-Leistung in W (aus Inverter-Konfiguration) |
 | `sensor.wr_konfiguration_raw` | 114 | WR-Konfiguration als base64 |
 
@@ -249,7 +249,7 @@ Bekannte Modellcodes:
 - **DP 115 (WR Ausgangsleistung):** Entspricht „Inverter Configuration → Power" in der App. Verhält sich als reine **Obergrenze**: Senken cappt DP 106 Slot 1 mit; Senken auf ≤200W cappt zusätzlich die Abschaltschwelle (DP 108). Erhöhen hat keinen Effekt auf Slot 1 oder DP 108. **Nicht geeignet für Nulleinspeisung** – dafür DP 106 Slot 1 verwenden. Gerät akzeptiert maximal das WR-Modell-Maximum (aus DP 114).
 - **DP 101 (PV-Daten):** Taucht nur bei aktiver PV-Produktion auf. Nachts bleiben diese Sensoren leer.
 - **DP 33 (DC-Ausgang):** Werte kommen nur als asynchrone Pushes, nicht auf Anfrage.
-- **DP 108 (Abschaltschwelle):** Tuya-intern als `batt_on_threshold` dokumentiert, Funktion im Betrieb noch nicht vollständig bestätigt.
+- **DP 108 (Abschaltschwelle):** Tuya-intern als `batt_on_threshold` dokumentiert. Vermutlich intern berechneter Schwellwert, ab dem das Gerät aus dem Standby wechselt (z. B. bei vorhandener PV-Leistung). Als readonly Sensor behandelt – theoretisch schreibbar, Effekt nicht bestätigt.
 - **Temperatur-Skala:** DP 10 liefert den Rohwert direkt in °C (kein Teiler). Tuya-Cloud-Spec bestätigt `scale:0`.
 
 ---
