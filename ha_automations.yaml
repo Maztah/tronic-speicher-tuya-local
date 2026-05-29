@@ -1,0 +1,78 @@
+# Tronic - Refresh & Monitoring
+#
+# Zweck:
+#   1. Hält alle tuya-local Sensoren aktuell (DP 111 force_refresh, minütlich).
+#   2. Initialisiert DP 106 (Entladeleistung Slot 1) nach Neustart oder WLAN-
+#      Reconnect – das Gerät pushed DP 106 niemals von sich aus, weshalb der
+#      Sensor nach jedem Verbindungsaufbau auf "unknown" steht. Ohne gültigen
+#      Wert schlägt tuya-locals Masking-Mechanismus fehl ("Cannot mask unknown
+#      current value") und die Nulleinspeisung-Automation kann nicht schreiben.
+#
+# Abhängigkeiten (aus lidl_tronic_speicher_tuyalocal.yaml):
+#   button.lidl_tronic_solarstromspeicher_daten_aktualisieren   → DP 111 force_refresh
+#   number.lidl_tronic_solarstromspeicher_entladeleistung_slot_1 → DP 106 Slot 1 Leistung
+#   button.lidl_tronic_solarstromspeicher_entladeleistung_reset  → schreibt Initialisierungs-
+#                                                                    Blob auf DP 106
+#
+# Entity-IDs anpassen:
+#   Wenn dein Gerät einen anderen Namen hat, ersetze "lidl_tronic_solarstromspeicher"
+#   in allen Entity-IDs durch deinen Geräte-Präfix (Gerätename in Kleinbuchstaben,
+#   Leerzeichen → Unterstrich).
+#
+# Import in Home Assistant:
+#   Einstellungen → Automationen → Automation erstellen → Drei-Punkte-Menü →
+#   "Als YAML bearbeiten" → diesen Block einfügen (ohne den Kopfkommentar).
+#   Die id: Zeile weglassen oder durch eine eigene ersetzen.
+
+alias: Tronic - Refresh & Monitoring
+description: >-
+  Aktualisiert alle Sensoren minütlich via DP 111 (force_refresh).
+  Initialisiert DP 106 (Entladeleistung Slot 1) nach Neustart oder WLAN-Reconnect,
+  da das Gerät diesen DP nie selbst pusht und tuya-local sonst nicht maskieren kann.
+triggers:
+  - trigger: time_pattern
+    minutes: /1
+  - trigger: homeassistant
+    event: start
+    id: startup
+  - trigger: state
+    entity_id: number.lidl_tronic_solarstromspeicher_entladeleistung_slot_1
+    to: unknown
+    id: unknown_state
+conditions: []
+actions:
+  # ── 1. Force-Refresh: Gerät pushed sofort alle aktuellen DPs ────────────────
+  - action: button.press
+    target:
+      entity_id: button.lidl_tronic_solarstromspeicher_daten_aktualisieren
+    data: {}
+
+  # ── 2. DP 106 Initialisierung wenn Wert unbekannt ───────────────────────────
+  # Hintergrund: DP 106 enthält einen 36-Byte-Blob (Entladeplan mit 5 Zeitslots).
+  # tuya-local ändert per Masking nur die Leistungs-Bytes von Slot 1. Das setzt
+  # aber einen bekannten Ist-Wert voraus – der nach Verbindungsverlust fehlt.
+  # Der Reset-Button schreibt den kompletten Standard-Blob direkt (kein Masking).
+  - if:
+      - condition: state
+        entity_id: number.lidl_tronic_solarstromspeicher_entladeleistung_slot_1
+        state:
+          - unknown
+          - unavailable
+    then:
+      # 5 Sekunden warten: force_refresh braucht etwas Zeit
+      - delay:
+          seconds: 5
+      # Nochmal prüfen – manchmal reicht der force_refresh allein
+      - if:
+          - condition: state
+            entity_id: number.lidl_tronic_solarstromspeicher_entladeleistung_slot_1
+            state:
+              - unknown
+              - unavailable
+        then:
+          - action: button.press
+            target:
+              entity_id: button.lidl_tronic_solarstromspeicher_entladeleistung_reset
+            data: {}
+mode: single
+max_exceeded: silent
