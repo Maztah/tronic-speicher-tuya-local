@@ -323,8 +323,10 @@ entities:
   # ─── DP 106: Entladeplan Slot 1 – Leistung (bytes 6-7, W) ──────────────────
   # tuya-local: liest Blob → ändert nur bytes 6-7 → schreibt zurück
   # Alle anderen Bytes (Zeitfenster Slots 1-5) bleiben unverändert
-  # Gültige Werte: 0 (Einspeisung stopp) oder 80–700W (Mindestleistung 80W)
-  # Werte 1–79W werden vom Gerät still ignoriert
+  # Minimum 80W: Werte 1–79W werden vom Gerät still ignoriert.
+  # 0W (Einspeisung stopp) ist technisch möglich, hier aber bewusst ausgeschlossen –
+  # zum Stoppen der Einspeisung stattdessen Betriebsmodus auf "Laden zuerst" setzen.
+  # ⚠️ Flash-Verschleiß: siehe Bekannte Einschränkungen im README.
   - entity: number
     name: Entladeleistung Slot 1
     category: config
@@ -339,7 +341,7 @@ entities:
         default: "AAEAABc7AFAAAAAAAABQAAAAAAAAUAAAAAAAAFAAAAAAAABQ"
         unit: W
         range:
-          min: 0
+          min: 80
           max: 800
         mapping:
           - step: 10
