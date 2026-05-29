@@ -334,13 +334,43 @@ entities:
         name: value
         optional: true
         force: true
+        #persist: true
         mask: "000000000000FFFF00000000000000000000000000000000000000000000000000000000"
+        default: "AAEAABc7AFAAAAAAAABQAAAAAAAAUAAAAAAAAFAAAAAAAABQ"
         unit: W
         range:
           min: 0
           max: 800
         mapping:
           - step: 10
+              
+  # ─── DP 106: Initialisierungs-Select ────────────────────────────────────────
+  # Schreibt den echten Device-Blob direkt auf DP 106 (kein Masking).
+  # Wird nach Neustart/Reconnect benutzt wenn Entladeleistung unknown ist.
+  # Alle 5 Slots auf 80W, nur Slot 1 aktiv (00:00–23:59) – exakt wie App.
+  # value: "Init" als String → kein Konflikt mit Number-Entity (nutzt Integer).
+  - entity: sensor
+    name: Entladeleistung Slot 1 Raw
+    category: diagnostic
+    hidden: true
+    dps:
+      - id: 106
+        type: base64
+        name: sensor
+        optional: true
+        readonly: true
+
+  - entity: button
+    name: Entladeleistung Reset
+    dps:
+      - id: 106
+        type: base64
+        name: button
+        optional: true
+        mapping:
+          - dps_val: "AAEAABc7AFAAAAAAAABQAAAAAAAAUAAAAAAAAFAAAAAAAABQ"
+            value: true
+
 
   # ─── DP 107: Entladetiefe (DoD) % ──────────────────────────────────────────
   - entity: number
@@ -539,6 +569,7 @@ entities:
   # ─── DP 33: Raw Diagnose ────────────────────────────────────────────────────
   - entity: sensor
     name: DC Message Raw
+    hidden: true
     category: diagnostic
     dps:
       - id: 33
@@ -570,6 +601,7 @@ entities:
   # 8 Bytes (4× uint16 BE): Modellcode / 360 / 30 / Max.leistung W
   - entity: sensor
     name: WR Konfiguration Raw
+    hidden: true
     category: diagnostic
     dps:
       - id: 114
