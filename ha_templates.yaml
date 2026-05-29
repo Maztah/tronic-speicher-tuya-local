@@ -2,18 +2,25 @@
 # Lidl Tronic Solarstromspeicher / Marstek Saturn B2500
 #
 # Füge diesen Block in deine configuration.yaml ein:
-#   template:
-#     - sensor:
-#         - name: "Batterieleistung"
-#           ...
-#
-# Oder binde die Datei ein:
 #   template: !include ha_templates.yaml
 #
+# Oder direkt in der configuration.yaml:
+#   template:
+#     - sensor:
+#         - name: "Ladeleistung netto"
+#           ...
+#
 # Voraussetzung: tuya-local YAML (lidl_tronic_speicher_tuyalocal.yaml) ist installiert.
+#
+# Gerätename anpassen: nur den Wert unter variables: device: ändern.
+# Der Wert entspricht dem Entity-Präfix den tuya-local vergibt
+# (Gerätenamen in Kleinbuchstaben, Leerzeichen → Unterstrich).
 
-- sensor:
-    # ─── Batterieleistung (vorzeichenbehaftet) ──────────────────────────────────
+- variables:
+    device: "lidl_tronic_solarstromspeicher"
+  sensor:
+
+    # ─── Ladeleistung netto (vorzeichenbehaftet) ────────────────────────────────
     #
     # Kombiniert Ladeleistung und Lade-/Entladestatus zu einem vorzeichenbehafteten
     # Leistungssensor, wie ihn das HA Energie-Dashboard erwartet:
@@ -23,16 +30,20 @@
     #   Standby:                         0 W
     #
     # Verwendung im Energie-Dashboard:
-    #   Einstellungen → Energie → Heimspeicher → Batterieleistung → dieser Sensor
+    #   Einstellungen → Energie → Heimspeicher → Ladeleistung netto → dieser Sensor
     #
-    - name: "Batterieleistung"
-      unique_id: lidl_tronic_batterieleistung
+    - name: "Ladeleistung netto"
+      unique_id: tronic_ladeleistung_netto
       unit_of_measurement: "W"
       device_class: power
       state_class: measurement
+      icon: mdi:home-battery-outline
+      availability: >
+        {{ states('sensor.' ~ device ~ '_lade_entladestatus') not in ['unknown', 'unavailable']
+           and states('sensor.' ~ device ~ '_ladeleistung') not in ['unknown', 'unavailable'] }}
       state: >
-        {% set leistung = states('sensor.lidl_tronic_solarstromspeicher_ladeleistung') | float(0) %}
-        {% set status = states('sensor.lidl_tronic_solarstromspeicher_lade_entladestatus') %}
+        {% set leistung = states('sensor.' ~ device ~ '_ladeleistung') | float(0) %}
+        {% set status = states('sensor.' ~ device ~ '_lade_entladestatus') %}
         {% if status == 'discharge' %}
           {{ leistung }}
         {% elif status == 'charge' %}
@@ -40,3 +51,28 @@
         {% else %}
           0
         {% endif %}
+
+    # ─── Solarleistung netto ────────────────────────────────────────────────────
+    #
+    # Erstellt von Hofyyy – https://github.com/Hofyyy/lidl-tronic-solarspeicher
+    # Quelle: lidl_tronic_template_sensoren.yaml
+    #
+    # Solarleistung netto = PV1 + PV2 (DP 101).
+    # Die PV-Sensoren liefern direkt die Erzeugungsleistung – keine Status-Logik
+    # nötig. Bei Nacht/unavailable gibt der Sensor "unavailable" zurück (korrekt).
+    #
+    # Verwendung im Energie-Dashboard:
+    #   Einstellungen → Energie → Solaranlage → Solarleistung netto → dieser Sensor
+    #
+    - name: "Solarleistung netto"
+      unique_id: "tronic_solarleistung_netto"
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      icon: mdi:solar-power
+      state: >
+        {{ states('sensor.' ~ device ~ '_pv1_leistung') | float(0)
+         + states('sensor.' ~ device ~ '_pv2_leistung') | float(0) }}
+      availability: >
+        {{ states('sensor.' ~ device ~ '_pv1_leistung') not in ['unknown', 'unavailable']
+           and states('sensor.' ~ device ~ '_pv2_leistung') not in ['unknown', 'unavailable'] }}
